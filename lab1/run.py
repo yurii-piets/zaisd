@@ -1,4 +1,7 @@
 import csv
+import matplotlib.pyplot as plt
+import math
+from operator import add, sub
 
 
 class Point:
@@ -16,6 +19,16 @@ class Point:
     def __str__(self):
         return "(" + str(self.x) + ", " + str(self.y) + ")"
 
+    def __sub__(self, other):
+        self.x = self.x - other.x
+        self.y = self.y - other.y
+        return self
+
+    def __add__(self, other):
+        self.x = self.x + other.x
+        self.y = self.y + other.y
+        return self
+
     __repr__ = __str__
 
 
@@ -30,23 +43,42 @@ def read_points(file_name):
 
 
 def is_left(a, b, p):
-    return ((p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x)) < 0
+    return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x) >= 0
 
 
-def sort_points(s):
-    s.sort()
-    point_array = s[:1] + sorted(s[1:], key=lambda p: (s[0].y - p.y) / (s[0].x - p.x))
-    return point_array
+def get_angle(point):
+    return math.atan2(point.y, point.x)
 
 
 def graham(points):
-    points = sort_points(points)
-    stack = []
-    for point in points:
-        while len(stack) > 1 and is_left(points[-1], points[-2], point):
-            stack.pop()
-        stack.append(point)
+    min_p = min(points, key=lambda p: p.y)
+    points.remove(min_p)
+    data_shifted_coords = [sub(point, min_p) for point in points]
+    sorted_shifted_data = sorted(data_shifted_coords, key=get_angle)
+    sorted_data = [add(point, min_p) for point in sorted_shifted_data][::-1]
+    stack = [min_p]
+    while sorted_data:
+        if len(stack) >= 3:
+            if is_left(stack[-3], stack[-2], stack[-1]):
+                stack.append(sorted_data.pop())
+            else:
+                stack.pop(-2)
+        else:
+            stack.append(sorted_data.pop())
+    if not is_left(stack[-3], stack[-2], stack[-1]):
+        stack.pop(-2)
     return stack
 
 
-print(graham(read_points("punktyPrzykladowe.csv")))
+def put_points(points, color):
+    for point in points:
+        plt.scatter(point.x, point.y, c=color)
+
+
+if __name__ == '__main__':
+    all_points = read_points("punktyPrzykladowe.csv")
+    plt.figure(1)
+    put_points(all_points, color='blue')
+    graham_points = graham(all_points)
+    put_points(graham_points, color='red')
+    plt.show()
