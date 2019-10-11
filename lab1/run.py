@@ -3,33 +3,7 @@ import matplotlib.pyplot as plt
 import math
 from operator import add, sub
 
-
-class Point:
-
-    def __init__(self, x, y):
-        self.x = float(x)
-        self.y = float(y)
-
-    def __lt__(self, other):
-        return self.y < other.y if (self.x == other.x) else self.x < other.x
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
-
-    def __str__(self):
-        return "(" + str(self.x) + ", " + str(self.y) + ")"
-
-    def __sub__(self, other):
-        self.x = self.x - other.x
-        self.y = self.y - other.y
-        return self
-
-    def __add__(self, other):
-        self.x = self.x + other.x
-        self.y = self.y + other.y
-        return self
-
-    __repr__ = __str__
+from common.point import Point
 
 
 def read_points(file_name):
@@ -51,14 +25,14 @@ def get_angle(point):
 
 
 def graham(points):
-    min_p = min(points, key=lambda p: p.y)
-    points.remove(min_p)
-    data_shifted_coords = [sub(point, min_p) for point in points]
+    min_point = min(points, key=lambda p: p.y)
+    points.remove(min_point)
+    data_shifted_coords = [sub(point, min_point) for point in points]
     sorted_shifted_data = sorted(data_shifted_coords, key=get_angle)
-    sorted_data = [add(point, min_p) for point in sorted_shifted_data][::-1]
-    stack = [min_p]
+    sorted_data = [add(point, min_point) for point in sorted_shifted_data][::-1]
+    stack = [min_point]
     while sorted_data:
-        if len(stack) >= 3:
+        if len(stack) > 2:
             if is_left(stack[-3], stack[-2], stack[-1]):
                 stack.append(sorted_data.pop())
             else:
