@@ -1,5 +1,4 @@
 import csv
-from collections import OrderedDict
 
 import matplotlib.pyplot as plt
 
@@ -11,7 +10,7 @@ def slope(a, b):
         return float('inf')
     if a.y == b.y:
         return 0.0
-    return round((b.y - a.y) / (b.x - a.x), 2)
+    return round((b.y - a.y) / (b.x - a.x), 10)
 
 
 def read_points(file_name):
@@ -25,20 +24,9 @@ def read_points(file_name):
 
 
 def most_popular_indexes(slopes):
-    ds = {}
-    for s in slopes:
-        if s in ds.keys():
-            ds[s] += 1
-        else:
-            ds[s] = 1
-
-    indexes = []
-    if ds:
-        max_slopes = sorted(ds.items(), key=lambda x: x[1])[-1][0]
-        for i in range(0, len(slopes)):
-            if max_slopes == slopes[i]:
-                indexes.append(i)
-    return indexes
+    most_occurred_element = max(slopes, key=slopes.count)
+    indices = [i for i, x in enumerate(slopes) if x == most_occurred_element]
+    return indices
 
 
 def col(points):
@@ -48,11 +36,12 @@ def col(points):
         for j in range(i + 1, len(points)):
             slopes.append(slope(points[i], points[j]))
 
-        pop_indexes = most_popular_indexes(slopes)
-        if len(pop_indexes) > len(max_points):
-            max_points.clear()
-            for pop in pop_indexes:
-                max_points.append(points[i + pop])
+        if slopes:
+            pop_indexes = most_popular_indexes(slopes)
+            if len(pop_indexes) > len(max_points):
+                max_points.clear()
+                for pop in pop_indexes:
+                    max_points.append(points[i + pop])
 
         slopes.clear()
     return max_points
