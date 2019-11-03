@@ -1,7 +1,8 @@
 import heapq
+import os
 import time
 
-ENCODING_LENGHT = 8
+ENCODING_LENGTH = 8
 
 
 def read_content(file_name):
@@ -9,14 +10,24 @@ def read_content(file_name):
         return file.read()
 
 
-def print_to_file(file_name, content):
+def print_bytes_to_file(file_name, content):
     f = open(file_name, "wb")
     f.write(content)
     f.close()
 
 
-def prepare_file_name(old_name):
+def print_str_to_file(file_name, content):
+    f = open(file_name, "w")
+    f.write(content)
+    f.close()
+
+
+def prepare_compressed_file_name(old_name):
     return str(time.ctime()).replace(' ', '_').replace(':', '-') + '_compressed_' + old_name
+
+
+def prepare_decompressed_file_name(old_name):
+    return str(time.ctime()).replace(' ', '_').replace(':', '-') + '_decompressed_' + old_name
 
 
 class Leaf:
@@ -40,9 +51,6 @@ class Leaf:
 
     def __repr__(self):
         return str(self)
-
-    def init_prefix(self, prefix):
-        self.prefix = prefix
 
     def add_left_leaf(self, leaf):
         self.left = leaf
@@ -79,6 +87,9 @@ def build_binary_tree_from_heap(heap):
     return heapq.heappop(heap)
 
 
+reverse_codes = {}
+
+
 def assign_codes(leaf, code, codes):
     if leaf is None:
         return
@@ -86,6 +97,7 @@ def assign_codes(leaf, code, codes):
     if leaf.char is not None:
         leaf.code = code
         codes[leaf.char] = code
+        reverse_codes[code] = leaf.char
         return
 
     assign_codes(leaf.left, code + "0", codes)
@@ -100,7 +112,7 @@ def encode_text(codes, text):
 
 
 def pad_encoded_text(encoded_text):
-    extra_padding = ENCODING_LENGHT - len(encoded_text) % ENCODING_LENGHT
+    extra_padding = ENCODING_LENGTH - len(encoded_text) % ENCODING_LENGTH
     for i in range(extra_padding):
         encoded_text += "0"
 
@@ -110,13 +122,13 @@ def pad_encoded_text(encoded_text):
 
 
 def get_byte_array(padded_encoded_text):
-    if len(padded_encoded_text) % ENCODING_LENGHT != 0:
+    if len(padded_encoded_text) % ENCODING_LENGTH != 0:
         print("Encoded text not padded properly")
         exit(0)
 
     b = bytearray()
-    for i in range(0, len(padded_encoded_text), ENCODING_LENGHT):
-        byte = padded_encoded_text[i:i + ENCODING_LENGHT]
+    for i in range(0, len(padded_encoded_text), ENCODING_LENGTH):
+        byte = padded_encoded_text[i:i + ENCODING_LENGTH]
         b.append(int(byte, 2))
     return bytes(b)
 
@@ -128,10 +140,50 @@ def huffman(content):
     codes = {}
     assign_codes(binary_tree_root, '', codes)
     encoded_text = encode_text(codes, content)
-    pad_encoded_text(encoded_text)
     padded_encoded_text = pad_encoded_text(encoded_text)
     byte_array = get_byte_array(padded_encoded_text)
     return byte_array
+
+
+def remove_padding(padded_encoded_text):
+    padded_info = padded_encoded_text[:8]
+    extra_padding = int(padded_info, 2)
+
+    padded_encoded_text = padded_encoded_text[8:]
+    encoded_text = padded_encoded_text[:-1 * extra_padding]
+
+    return encoded_text
+
+
+def decode_text(encoded_text):
+    current_code = ""
+    decoded_text = ""
+
+    for bit in encoded_text:
+        current_code += bit
+        if current_code in reverse_codes:
+            character = reverse_codes[current_code]
+            decoded_text += character
+            current_code = ""
+
+    return decoded_text
+
+
+def decompress(input_path):
+    decompressed_content = ''
+    with open(input_path, 'rb') as file:
+        bit_string = ""
+
+        byte = file.read(1)
+        while len(byte) > 0:
+            byte = ord(byte)
+            bits = bin(byte)[2:].rjust(8, '0')
+            bit_string += bits
+            byte = file.read(1)
+        encoded_text = remove_padding(bit_string)
+        decompressed_content += decode_text(encoded_text)
+
+    return decompressed_content
 
 
 if __name__ == '__main__':
@@ -140,5 +192,11 @@ if __name__ == '__main__':
     if not len(content):
         raise Exception('Empty input file!')
     compressed_content = huffman(content)
-    print_to_file(prepare_file_name(file_name), compressed_content)
+    output_filename = prepare_compressed_file_name(file_name)
+    print_bytes_to_file(output_filename, compressed_content)
     print((len(content) - len(compressed_content)) / len(content))
+
+    decompressed = decompress(output_filename)
+    print_str_to_file(prepare_decompressed_file_name(file_name), decompressed)
+    print(content == decompressed)
+
