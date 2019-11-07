@@ -1,9 +1,8 @@
 import heapq
-import os
 import time
 
-ENCODING_LENGTH = 8
-
+PADDING_LENGTH = 8
+CODING_LENGTH = 3
 
 def read_content(file_name):
     with open(file_name) as file:
@@ -61,11 +60,14 @@ class Leaf:
 
 def build_frequency_dictionary(content):
     frequency_dictionary = {}
-    for char in content:
-        if char not in frequency_dictionary.keys():
-            frequency_dictionary[char] = 1
+    current_index = 0
+    while current_index < len(content):
+        coding_word = content[current_index:current_index + CODING_LENGTH]
+        if coding_word not in frequency_dictionary.keys():
+            frequency_dictionary[coding_word] = 1
         else:
-            frequency_dictionary[char] += 1
+            frequency_dictionary[coding_word] += 1
+        current_index += CODING_LENGTH
     return frequency_dictionary
 
 
@@ -106,13 +108,16 @@ def assign_codes(leaf, code, codes):
 
 def encode_text(codes, text):
     encoded_text = ""
-    for character in text:
-        encoded_text += codes[character]
+    current_index = 0
+    while current_index < len(content):
+        coding_word = content[current_index:current_index + CODING_LENGTH]
+        encoded_text += codes[coding_word]
+        current_index += CODING_LENGTH
     return encoded_text
 
 
 def pad_encoded_text(encoded_text):
-    extra_padding = ENCODING_LENGTH - len(encoded_text) % ENCODING_LENGTH
+    extra_padding = PADDING_LENGTH - len(encoded_text) % PADDING_LENGTH
     for i in range(extra_padding):
         encoded_text += "0"
 
@@ -121,14 +126,14 @@ def pad_encoded_text(encoded_text):
     return encoded_text
 
 
-def get_byte_array(padded_encoded_text):
-    if len(padded_encoded_text) % ENCODING_LENGTH != 0:
+def convert_to_bytearray(padded_encoded_text):
+    if len(padded_encoded_text) % PADDING_LENGTH != 0:
         print("Encoded text not padded properly")
         exit(0)
 
     b = bytearray()
-    for i in range(0, len(padded_encoded_text), ENCODING_LENGTH):
-        byte = padded_encoded_text[i:i + ENCODING_LENGTH]
+    for i in range(0, len(padded_encoded_text), PADDING_LENGTH):
+        byte = padded_encoded_text[i:i + PADDING_LENGTH]
         b.append(int(byte, 2))
     return bytes(b)
 
@@ -141,7 +146,7 @@ def huffman(content):
     assign_codes(binary_tree_root, '', codes)
     encoded_text = encode_text(codes, content)
     padded_encoded_text = pad_encoded_text(encoded_text)
-    byte_array = get_byte_array(padded_encoded_text)
+    byte_array = convert_to_bytearray(padded_encoded_text)
     return byte_array
 
 
