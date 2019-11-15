@@ -1,6 +1,7 @@
 import heapq
 import pickle
 import sys
+from ast import literal_eval
 
 PADDING_LENGTH = 8
 
@@ -178,6 +179,12 @@ def decode_text(encoded_text, reverse_codes_in):
     return decoded_text
 
 
+def len_of_file(file_name):
+    with open(file_name, 'rb') as file:
+        bytez = file.read()
+    return len(bytez)
+
+
 def decompress(input_path, reverse_codes_in):
     decompressed_content = ''
     with open(input_path, 'rb') as file:
@@ -199,7 +206,7 @@ CODING_LENGTH = 1
 
 
 def save_as_pkl(obj, name):
-    with open(name + '.pkl', 'wb') as f:
+    with open(name, 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
@@ -219,8 +226,13 @@ if __name__ == '__main__':
         compressed_content, reverse_codes = huffman(content)
         output_filename = prepare_compressed_file_name(file_name)
         print_bytes_to_file(output_filename, compressed_content)
-        save_as_pkl(reverse_codes, 'reverse_codes_compressed_' + file_name)
-        print((len(content) - len(compressed_content)) / len(content))
+        pkl_file_name = 'reverse_codes_compressed_' + file_name + '.pkl'
+        print_bytes_to_file(pkl_file_name, bytes(str(reverse_codes)))
+        print(
+            (len(content) - len(compressed_content) - len_of_file(pkl_file_name))
+        #-----------------------------------------------------------------------
+                                    / len(content)
+        )
     elif 'd' in action:
         reverse_codes_from_pkl = load_pkl('reverse_codes' + file_name)
         decompressed = decompress(file_name, reverse_codes_from_pkl)
